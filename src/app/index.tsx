@@ -1,98 +1,119 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {Text, StyleSheet, View, FlatList, TextInput, TouchableOpacity, Image} from 'react-native';
+import { useState } from 'react';
+import axios from 'axios';
+import {useRouter} from 'expo-router';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function Receitas(){
+  const [value, setValue] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState('');
+  const router = useRouter();
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
+  const RequestApi = async () => {
+    setTimeout(() => {
+      axios.get(`https://themealdb.com/api/json/v1/1/search.php?s=${busca}`).then((res) => {
+        console.log("Resposta da API:", res.data.meals);
+        setValue(res.data.meals);
+      }).finally(() => {
+        setLoading(false);
+      })
+    }, 3000);
   }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
+
+  const abrirDetalhes = (item: any) => {
+    router.push({
+      pathname: '/detalhes',
+      params: {
+        nome: item.strMeal,
+        imagem: item.strMealThumb,
+        instrucoes: item.strInstructions,
+      },
+    });
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+    <View style={styles.body}>
+      <Text style={styles.titulo}>Index de Receitas</Text>
+      <TextInput style={styles.pesquisa}
+        value={busca}
+        onChangeText={setBusca} 
+        placeholder="Digite a receita..."/>
+      <TouchableOpacity onPress={RequestApi} style={styles.button}>
+        <Text style={styles.buttonText}>Buscar Receita</Text>
+      </TouchableOpacity>
+      <FlatList 
+        data={value}
+        numColumns={5}
+        keyExtractor={(item) => item.idMeal}
+        renderItem={({item}) => (
+          <TouchableOpacity style={styles.card} onPress={() => abrirDetalhes(item)}>
+            <Image source={{ uri: item.strMealThumb }} style={styles.imagem} />
+            <Text style={styles.nome}>{item.strMeal}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+  body: {
+    backgroundColor: '#fcb27d',
+    flex: 1
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+  titulo:{
+    fontSize: 60,
+    fontWeight: 'bold',
+    color: '#fae7d9',
+    textAlign: 'center',
+    padding: 20,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
+  pesquisa:{
+    borderWidth: 3,
+    borderColor: '#ff7f23',
+    borderRadius: 30,
+    backgroundColor: '#fae7d9',
+    width: 750,
+    height: 50,
+    alignSelf: 'center',
+    fontSize: 30,
     textAlign: 'center',
   },
-  code: {
-    textTransform: 'uppercase',
+  button:{
+    backgroundColor: '#fae7d9',
+    width: 200,
+    height: 50,
+    alignSelf: 'center',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#ff7f23',
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  buttonText:{
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ff7f23',
   },
-});
+  card:{
+    backgroundColor: '#fae7d9',
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+  },
+  imagem:{
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  nome:{
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    padding: 10,
+  }
+})
